@@ -1,0 +1,16 @@
+{
+  "name": "cr-discord-bot",
+  "version": "1.0.0",
+  "description": "CR Discord bot with economy and gambling",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "deploy": "node deploy-commands.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.5",
+    "openai": "^4.47.1"
+  }
+}
