@@ -40,7 +40,7 @@ module.exports = {
     } else if (sub === 'list') {
       const roles = getDailyRoles(guildId);
       if (roles.length === 0) {
-        return interaction.reply({ content: 'No role daily payouts configured. Default is **100 coins**.', ephemeral: true });
+        return interaction.reply({ content: 'No role daily payouts configured. Default is **100 coins**.', flags: 64 });
       }
       const lines = roles.map(r => `<@&${r.role_id}> → **${r.amount.toLocaleString()} coins**`).join('\n');
       await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('Daily Role Payouts').setDescription(lines)] });

@@ -55,8 +55,40 @@ function removeDailyRole(guildId, roleId) {
     .run(guildId, roleId);
 }
 
+function ensureLoan(userId, guildId) {
+  db.prepare(`
+    INSERT OR IGNORE INTO loans (user_id, guild_id, principal, owed, cooldown_until)
+    VALUES (?, ?, 0, 0, 0)
+  `).run(userId, guildId);
+}
+
+function getLoan(userId, guildId) {
+  ensureLoan(userId, guildId);
+  return db.prepare('SELECT * FROM loans WHERE user_id = ? AND guild_id = ?')
+    .get(userId, guildId);
+}
+
+function issueLoan(userId, guildId, principal, owed) {
+  ensureLoan(userId, guildId);
+  db.prepare('UPDATE loans SET principal = ?, owed = ?, cooldown_until = 0 WHERE user_id = ? AND guild_id = ?')
+    .run(principal, owed, userId, guildId);
+}
+
+function repayLoan(userId, guildId, amount) {
+  ensureLoan(userId, guildId);
+  db.prepare('UPDATE loans SET owed = MAX(0, owed - ?) WHERE user_id = ? AND guild_id = ?')
+    .run(amount, userId, guildId);
+}
+
+function setLoanCooldown(userId, guildId, until) {
+  ensureLoan(userId, guildId);
+  db.prepare('UPDATE loans SET cooldown_until = ? WHERE user_id = ? AND guild_id = ?')
+    .run(until, userId, guildId);
+}
+
 module.exports = {
   getBalance, addBalance, removeBalance,
   setLastDaily, getLastDaily,
-  getDailyRoles, setDailyRole, removeDailyRole
+  getDailyRoles, setDailyRole, removeDailyRole,
+  getLoan, issueLoan, repayLoan, setLoanCooldown,
 };

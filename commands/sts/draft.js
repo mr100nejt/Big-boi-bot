@@ -52,7 +52,7 @@ module.exports = {
     const userId = interaction.user.id;
 
     if (drafts.has(userId)) {
-      return interaction.reply({ content: 'You already have an active draft! Finish it first or wait 10 minutes for it to expire.', ephemeral: true });
+      return interaction.reply({ content: 'You already have an active draft! Finish it first or wait 10 minutes for it to expire.', flags: 64 });
     }
 
     const choices = getRandomCards(character, 3);
@@ -73,12 +73,12 @@ module.exports = {
     const choiceIndex = parseInt(parts[2]);
 
     if (interaction.user.id !== userId) {
-      return interaction.reply({ content: "That's not your draft!", ephemeral: true });
+      return interaction.reply({ content: "That's not your draft!", flags: 64 });
     }
 
     const draft = drafts.get(userId);
     if (!draft) {
-      return interaction.reply({ content: 'This draft has expired. Start a new one with /draft.', ephemeral: true });
+      return interaction.reply({ content: 'This draft has expired. Start a new one with /draft.', flags: 64 });
     }
 
     const picked = draft.choices[choiceIndex];
