@@ -10,13 +10,16 @@ module.exports = {
       try {
         await command.execute(interaction);
       } catch (err) {
+        if (err.code === 10062) { console.warn(`⚠️ Stale interaction slipped through: /${interaction.commandName}`); return; }
         console.error(`Error in /${interaction.commandName}:`, err);
-        const msg = { content: 'Something went wrong. Try again.', ephemeral: true };
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(msg);
-        } else {
-          await interaction.reply(msg);
-        }
+        const msg = { content: 'Something went wrong. Try again.', flags: 64 };
+        try {
+          if (interaction.replied || interaction.deferred) {
+            await interaction.followUp(msg);
+          } else {
+            await interaction.reply(msg);
+          }
+        } catch { /* interaction expired — silently drop */ }
       }
 
     } else if (interaction.isButton()) {
@@ -26,12 +29,14 @@ module.exports = {
         }
       } catch (err) {
         console.error('Button handler error:', err);
-        const msg = { content: 'Something went wrong with that button.', ephemeral: true };
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(msg);
-        } else {
-          await interaction.reply(msg);
-        }
+        const msg = { content: 'Something went wrong with that button.', flags: 64 };
+        try {
+          if (interaction.replied || interaction.deferred) {
+            await interaction.followUp(msg);
+          } else {
+            await interaction.reply(msg);
+          }
+        } catch { /* interaction expired — silently drop */ }
       }
     }
   }

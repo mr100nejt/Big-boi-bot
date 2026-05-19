@@ -21,7 +21,7 @@ module.exports = {
       const minutes = Math.floor((remaining % 3600000) / 60000);
       return interaction.reply({
         content: `You already claimed your daily! Come back in **${hours}h ${minutes}m**.`,
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -46,6 +46,6 @@ module.exports = {
       .setTitle('Daily Claimed!')
       .setDescription(`You received **${payout.toLocaleString()} coins**!\nNew balance: **${newBalance.toLocaleString()} coins**`);
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: 64 });
   }
 };

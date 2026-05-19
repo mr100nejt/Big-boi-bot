@@ -1,0 +1,7 @@
+{
+  "sqlite.databases": [
+    {
+      "path": "${workspaceFolder}/economy.db"
+    }
+  ]
+}

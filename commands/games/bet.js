@@ -26,10 +26,11 @@ module.exports = {
     const description = interaction.options.getString('description');
     const userId = interaction.user.id;
     const guildId = interaction.guildId;
-    const balance = getBalance(userId, guildId);
+    await interaction.deferReply();
 
+    const balance = getBalance(userId, guildId);
     if (amount > balance) {
-      return interaction.reply({ content: `You only have **${balance.toLocaleString()} coins**. Can't bet ${amount.toLocaleString()}.`, ephemeral: true });
+      return interaction.editReply({ content: `You only have **${balance.toLocaleString()} coins**. Can't bet ${amount.toLocaleString()}.` });
     }
 
     const chance = winChance(multiplier);
@@ -40,6 +41,7 @@ module.exports = {
       addBalance(userId, guildId, winnings);
     } else {
       removeBalance(userId, guildId, amount);
+      addBalance(interaction.client.user.id, guildId, amount);
     }
 
     const newBalance = getBalance(userId, guildId);
@@ -55,6 +57,6 @@ module.exports = {
       )
       .setFooter({ text: `Win chance: ${Math.round(chance * 100)}%${description ? ` | "${description}"` : ''}` });
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 };

@@ -18,10 +18,11 @@ module.exports = {
     const choice = interaction.options.getString('side');
     const userId = interaction.user.id;
     const guildId = interaction.guildId;
-    const balance = getBalance(userId, guildId);
+    await interaction.deferReply();
 
+    const balance = getBalance(userId, guildId);
     if (bet > balance) {
-      return interaction.reply({ content: `You only have **${balance.toLocaleString()} coins**. Can't bet ${bet.toLocaleString()}.`, ephemeral: true });
+      return interaction.editReply({ content: `You only have **${balance.toLocaleString()} coins**. Can't bet ${bet.toLocaleString()}.` });
     }
 
     const result = Math.random() < 0.5 ? 'heads' : 'tails';
@@ -32,6 +33,7 @@ module.exports = {
       addBalance(userId, guildId, bet);
     } else {
       removeBalance(userId, guildId, bet);
+      addBalance(interaction.client.user.id, guildId, bet);
     }
 
     const newBalance = getBalance(userId, guildId);
@@ -46,6 +48,6 @@ module.exports = {
         { name: 'New Balance', value: `${newBalance.toLocaleString()} coins`, inline: false }
       );
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 };

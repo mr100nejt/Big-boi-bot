@@ -60,6 +60,7 @@ module.exports = {
       addBalance(userId, guildId, bet);
     } else {
       removeBalance(userId, guildId, bet);
+      addBalance(interaction.client.user.id, guildId, bet);
     }
 
     const newBalance = getBalance(userId, guildId);

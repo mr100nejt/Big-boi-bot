@@ -85,8 +85,122 @@ function randomEvent() {
   };
 }
 
+// Seed category tags for filtering
+const SEEDS = [
+  {
+    seed: 'shiv',
+    biome: 'Temperate Forest',
+    coords: '27.20°N, 25.88°W',
+    mapSize: '250x250',
+    tag: 'defensive',
+    why: 'Single-entry chokepoint with two steam geysers inside the perimeter. Near-impenetrable natural fortress — perfect for a turtle playstyle.',
+  },
+  {
+    seed: 'seed parka',
+    biome: 'Temperate Forest',
+    coords: '22.09°N, 27.70°E',
+    mapSize: '250x250',
+    tag: 'OP',
+    why: 'Three geysers packed into one defensible mountain clearing. Basically free geothermal power forever — widely considered one of the best power starts in the game.',
+  },
+  {
+    seed: 'konstantin',
+    biome: 'Temperate Forest',
+    coords: '35.11°N, 56.15°W',
+    mapSize: '250x250',
+    tag: 'defensive',
+    why: 'Two natural alcoves give you a secure inner base plus room to expand. Great for players who like a structured, fortified layout.',
+  },
+  {
+    seed: 'donatello',
+    biome: 'Boreal Forest',
+    coords: '44.20°N, 5.81°W',
+    mapSize: '250x250',
+    tag: 'resource-rich',
+    why: 'River + geysers + mountains in a boreal tile. Dense ore deposits make it one of the best mining starts around. Cold climate keeps raiders manageable early on.',
+  },
+  {
+    seed: 'hill to die on',
+    biome: 'Tropical Rainforest',
+    coords: '16.27°N, 5.77°W',
+    mapSize: '250x250',
+    tag: 'defensive',
+    why: 'A tight, easily-walled rainforest alcove with a single entrance and solid mining potential behind it. Small enough to defend solo, big enough to grow into.',
+  },
+  {
+    seed: 'interplanetary',
+    biome: 'Temperate Forest',
+    coords: '34.35°N, 29.97°E',
+    mapSize: '250x250',
+    tag: 'balanced',
+    why: 'Granite and sandstone mountains with two steam geysers in a protected valley. 30-day growing season hits the sweet spot between farming and survival.',
+  },
+  {
+    seed: 'agony',
+    biome: 'Boreal Forest',
+    coords: '25.10°N, 7.78°W',
+    mapSize: '250x250',
+    tag: 'challenge',
+    why: 'Cold mountain tile with a single exit — great for a brutal, defensive run. The climate pressure keeps things interesting the whole way through.',
+  },
+  {
+    seed: 'lyle',
+    biome: 'Temperate Forest',
+    coords: '30.00°N, 15.00°W',
+    mapSize: '250x250',
+    tag: 'OP',
+    why: 'Coastal strip between two mountain ranges with four geysers. 40-day growing season, two natural walls, and enough geothermal power to run a small city.',
+  },
+  {
+    seed: '100ManTest',
+    biome: 'Temperate Forest',
+    coords: '0.58°N, 16.30°W',
+    mapSize: '250x250',
+    tag: 'defensive',
+    why: 'Mountain range hugging the coast with only two openings to seal. Classic "fortress with a view" layout — beloved for mass-colonist runs.',
+  },
+  {
+    seed: 'pandamandokantolando',
+    biome: 'Tropical Rainforest',
+    coords: '2.93°N, 5.72°E',
+    mapSize: '250x250',
+    tag: 'fun',
+    why: 'River through the middle of a lush rainforest. Reliable hydroelectric power, year-round farming, and the name alone makes it worth picking.',
+  },
+  {
+    seed: 'ultrafine',
+    biome: 'Temperate Forest',
+    coords: '16.12°N, 13.12°W',
+    mapSize: '250x250',
+    tag: 'balanced',
+    why: 'Fertile mountain tile with a creek and solid ore access. Well-rounded start without any major drawbacks — good all-rounder for new players.',
+  },
+  {
+    seed: 'settlement',
+    biome: 'Temperate Forest',
+    coords: '25.94°N, 22.46°W',
+    mapSize: '275x275',
+    tag: 'fun',
+    why: 'Features a buried vault structure on the map — an ancient relic to explore, loot, and build around. Adds a story layer most seeds lack.',
+  },
+];
+
+const TAG_COLORS = {
+  'OP':           0xf5c518,
+  'defensive':    0x57f287,
+  'resource-rich':0x3498db,
+  'balanced':     0x95a5a6,
+  'challenge':    0xed4245,
+  'fun':          0xe67e22,
+};
+
+function randomSeed(tag = null) {
+  const pool = tag ? SEEDS.filter(s => s.tag === tag) : SEEDS;
+  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+}
+
 function randomScenario() {
   return SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
 }
 
-module.exports = { randomEvent, randomScenario };
+module.exports = { randomEvent, randomScenario, randomSeed, TAG_COLORS, SEEDS };
