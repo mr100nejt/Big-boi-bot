@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('balance')
     .setDescription('Check your coin balance')
+    .setDMPermission(false)
     .addUserOption(opt =>
       opt.setName('user').setDescription('User to check (admin only)').setRequired(false)
     ),

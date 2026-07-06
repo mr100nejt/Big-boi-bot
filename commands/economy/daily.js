@@ -7,7 +7,8 @@ const DEFAULT_DAILY = 100;
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('daily')
-    .setDescription('Claim your daily coins'),
+    .setDescription('Claim your daily coins')
+    .setDMPermission(false),
 
   async execute(interaction) {
     const userId = interaction.user.id;

@@ -76,9 +76,15 @@ module.exports = {
       return interaction.reply({ content: "That's not your draft!", flags: 64 });
     }
 
+    try {
+      await interaction.deferUpdate();
+    } catch {
+      return; // Interaction already expired — drop silently
+    }
+
     const draft = drafts.get(userId);
     if (!draft) {
-      return interaction.reply({ content: 'This draft has expired. Start a new one with /draft.', flags: 64 });
+      return interaction.followUp({ content: 'This draft has expired. Start a new one with /draft.', flags: 64 });
     }
 
     const picked = draft.choices[choiceIndex];
@@ -99,7 +105,7 @@ module.exports = {
         )
         .setFooter({ text: 'Use /deckcheck to get synergy advice on this deck!' });
 
-      return interaction.update({ embeds: [finalEmbed], components: [] });
+      return interaction.editReply({ embeds: [finalEmbed], components: [] });
     }
 
     const newChoices = getRandomCards(draft.character, 3);
@@ -109,6 +115,6 @@ module.exports = {
     const embed = buildDraftEmbed(charName, draft.round, draft.deck, newChoices);
     const row = buildButtons(userId, newChoices);
 
-    await interaction.update({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row] });
   }
 };

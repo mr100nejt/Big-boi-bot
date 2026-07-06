@@ -10,7 +10,14 @@ for (const folder of commandFolders) {
   const files = fs.readdirSync(path.join(__dirname, 'commands', folder)).filter(f => f.endsWith('.js'));
   for (const file of files) {
     const command = require(path.join(__dirname, 'commands', folder, file));
-    if (command.data) commands.push(command.data.toJSON());
+    if (command.data && command.execute) {
+      commands.push(command.data.toJSON());
+    } else {
+      console.warn(`⚠️  Skipping ${file} — missing data or execute property`);
+    }
+    if (command.contextMenu) {
+      commands.push(command.contextMenu.toJSON());
+    }
   }
 }
 

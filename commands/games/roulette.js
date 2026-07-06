@@ -1,8 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getBalance, addBalance, removeBalance } = require('../../utils/currency');
+const { getBalance, addBalance, removeBalance, feedJackpot, claimJackpot, getJackpot } = require('../../utils/currency');
+const { checkCooldown, setCooldown } = require('../../utils/cooldown');
+const { recordWin, resetStreak, streakBonus } = require('../../utils/streak');
+const { safeDefer } = require('../../utils/interact');
 
-// Payouts: red/black = 2x, dozens = 3x, single number = 36x
-const NUMBERS = Array.from({ length: 37 }, (_, i) => i); // 0-36
+const NUMBERS = Array.from({ length: 37 }, (_, i) => i);
 const RED = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 
 function spin() {
@@ -23,13 +25,13 @@ function resolveBet(betType, betValue, spinResult) {
   }
 }
 
+const COOLDOWN = 10;
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('roulette')
     .setDescription('Spin the roulette wheel')
-    .addIntegerOption(opt =>
-      opt.setName('bet').setDescription('Amount to bet').setRequired(true).setMinValue(1)
-    )
+    .setDMPermission(false)
     .addStringOption(opt =>
       opt.setName('type').setDescription('Bet type').setRequired(true)
         .addChoices(
@@ -44,10 +46,15 @@ module.exports = {
     )
     .addIntegerOption(opt =>
       opt.setName('number').setDescription('Number to bet on (0-36, only for Single Number bet)').setMinValue(0).setMaxValue(36)
+    )
+    .addIntegerOption(opt =>
+      opt.setName('bet').setDescription('Amount to bet').setMinValue(1)
+    )
+    .addBooleanOption(opt =>
+      opt.setName('all-in').setDescription('Bet your entire balance')
     ),
 
   async execute(interaction) {
-    const bet = interaction.options.getInteger('bet');
     const betType = interaction.options.getString('type');
     const betNumber = interaction.options.getInteger('number');
     const userId = interaction.user.id;
@@ -57,28 +64,63 @@ module.exports = {
       return interaction.reply({ content: 'You must provide a number for a Single Number bet.', flags: 64 });
     }
 
-    await interaction.deferReply();
+    await safeDefer(interaction);
+
+    const wait = checkCooldown(userId, 'roulette');
+    if (wait > 0) {
+      return interaction.editReply(`Roulette is on cooldown. Try again in **${wait}s**.`);
+    }
 
     const balance = getBalance(userId, guildId);
-    if (bet > balance) {
-      return interaction.editReply({ content: `You only have **${balance.toLocaleString()} coins**. Can't bet ${bet.toLocaleString()}.` });
+    const allin = interaction.options.getBoolean('all-in') ?? false;
+    const rawBet = interaction.options.getInteger('bet');
+
+    if (allin && rawBet !== null) {
+      return interaction.editReply('Use either `all-in` or a `bet` amount — not both.');
     }
+    if (!allin && rawBet === null) {
+      return interaction.editReply('Provide a `bet` amount or use `all-in: True`.');
+    }
+
+    const bet = allin ? balance : rawBet;
+    if (bet <= 0) return interaction.editReply("You don't have any coins to bet!");
+    if (bet > balance) {
+      return interaction.editReply(`You only have **${balance.toLocaleString()} coins**. Can't bet ${bet.toLocaleString()}.`);
+    }
+
+    setCooldown(userId, 'roulette', COOLDOWN);
 
     const result = spin();
     const isRed = RED.includes(result);
     const colorEmoji = result === 0 ? '🟢' : isRed ? '🔴' : '⚫';
     const multiplier = resolveBet(betType, betNumber, result);
     const won = multiplier > 0;
-    const winnings = won ? bet * multiplier - bet : 0;
+
+    const streak = won ? recordWin(userId, guildId) : (resetStreak(userId, guildId), 0);
+    const bonus = streakBonus(streak);
+
+    let jackpotWon = 0;
+    let winnings = 0;
 
     if (won) {
+      const base = bet * multiplier - bet;
+      const bonusCoins = Math.floor(base * bonus);
+      winnings = base + bonusCoins;
+      removeBalance(interaction.client.user.id, guildId, winnings);
       addBalance(userId, guildId, winnings);
+
+      if (Math.random() < 0.005) {
+        jackpotWon = claimJackpot(guildId);
+        if (jackpotWon > 0) addBalance(userId, guildId, jackpotWon);
+      }
     } else {
       removeBalance(userId, guildId, bet);
       addBalance(interaction.client.user.id, guildId, bet);
+      feedJackpot(guildId, Math.floor(bet * 0.10));
     }
 
     const newBalance = getBalance(userId, guildId);
+    const jackpotNow = getJackpot(guildId);
 
     const embed = new EmbedBuilder()
       .setColor(won ? 0x57f287 : 0xed4245)
@@ -86,8 +128,12 @@ module.exports = {
       .addFields(
         { name: 'Your Bet', value: `${betType}${betType === 'number' ? ` (${betNumber})` : ''}`, inline: true },
         { name: won ? 'Won' : 'Lost', value: `${(won ? winnings : bet).toLocaleString()} coins`, inline: true },
-        { name: 'New Balance', value: `${newBalance.toLocaleString()} coins`, inline: false }
+        { name: 'Balance', value: `${newBalance.toLocaleString()} coins`, inline: true }
       );
+
+    if (won && bonus > 0) embed.addFields({ name: `🔥 ${streak}-Win Streak`, value: `+${Math.round(bonus * 100)}% bonus`, inline: true });
+    if (jackpotWon > 0) embed.addFields({ name: '🏆 JACKPOT!', value: `+${jackpotWon.toLocaleString()} bonus coins!`, inline: false });
+    embed.setFooter({ text: `Jackpot pot: ${jackpotNow.toLocaleString()} coins` });
 
     await interaction.editReply({ embeds: [embed] });
   }

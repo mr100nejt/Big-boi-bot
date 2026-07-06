@@ -9,6 +9,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('daddyplease')
     .setDescription('Ask Big Boi Bot for a loan — but you gotta win a coinflip to get it')
+    .setDMPermission(false)
     .addIntegerOption(opt =>
       opt.setName('amount')
         .setDescription(`Amount to borrow (max ${MAX_LOAN.toLocaleString()} coins)`)

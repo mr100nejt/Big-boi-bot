@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('repay')
     .setDescription('Pay back your loan to Big Boi Bot')
+    .setDMPermission(false)
     .addIntegerOption(opt =>
       opt.setName('amount')
         .setDescription('Amount to repay (omit to pay everything you owe)')

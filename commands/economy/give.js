@@ -6,6 +6,7 @@ module.exports = {
     .setName('give')
     .setDescription('Admin: give or remove coins from a user')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDMPermission(false)
     .addUserOption(opt =>
       opt.setName('user').setDescription('Target user').setRequired(true)
     )

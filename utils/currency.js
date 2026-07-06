@@ -86,9 +86,30 @@ function setLoanCooldown(userId, guildId, until) {
     .run(until, userId, guildId);
 }
 
+function getJackpot(guildId) {
+  const row = db.prepare('SELECT amount FROM jackpot WHERE guild_id = ?').get(guildId);
+  return row ? row.amount : 0;
+}
+
+function feedJackpot(guildId, amount) {
+  const feed = Math.floor(amount);
+  if (feed <= 0) return;
+  db.prepare(`
+    INSERT INTO jackpot (guild_id, amount) VALUES (?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET amount = amount + excluded.amount
+  `).run(guildId, feed);
+}
+
+function claimJackpot(guildId) {
+  const amount = getJackpot(guildId);
+  if (amount > 0) db.prepare('UPDATE jackpot SET amount = 0 WHERE guild_id = ?').run(guildId);
+  return amount;
+}
+
 module.exports = {
   getBalance, addBalance, removeBalance,
   setLastDaily, getLastDaily,
   getDailyRoles, setDailyRole, removeDailyRole,
   getLoan, issueLoan, repayLoan, setLoanCooldown,
+  getJackpot, feedJackpot, claimJackpot,
 };
