@@ -1,3 +1,5 @@
+const { recordActivity } = require('../utils/activityTracker');
+
 const COWBOY = '🤠';
 
 function weirdnessScore(content) {
@@ -48,6 +50,8 @@ module.exports = {
   name: 'messageCreate',
   async execute(message) {
     if (message.author.bot) return;
+
+    recordActivity(message.channelId);
 
     const score = weirdnessScore(message.content);
     if (score >= 10) {

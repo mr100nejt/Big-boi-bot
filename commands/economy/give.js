@@ -6,6 +6,7 @@ module.exports = {
     .setName('give')
     .setDescription('Admin: give or remove coins from a user')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDMPermission(false)
     .addUserOption(opt =>
       opt.setName('user').setDescription('Target user').setRequired(true)
     )
@@ -14,6 +15,10 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    if (interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'Only the server owner can use this.', flags: 64 });
+    }
+
     const target = interaction.options.getUser('user');
     const amount = interaction.options.getInteger('amount');
     const guildId = interaction.guildId;

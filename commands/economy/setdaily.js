@@ -1,11 +1,12 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
-const { setDailyRole, removeDailyRole, getDailyRoles } = require('../../utils/currency');
+const { setDailyRole, removeDailyRole, getDailyRoles, resetDailyAll, resetDailyUser } = require('../../utils/currency');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setdaily')
     .setDescription('Admin: configure daily payout per role')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDMPermission(false)
     .addSubcommand(sub =>
       sub.setName('set')
         .setDescription('Set daily payout for a role')
@@ -20,9 +21,20 @@ module.exports = {
     .addSubcommand(sub =>
       sub.setName('list')
         .setDescription('List all role daily payouts')
+    )
+    .addSubcommand(sub =>
+      sub.setName('reset')
+        .setDescription('Reset daily cooldown for everyone or a specific user')
+        .addUserOption(opt =>
+          opt.setName('user').setDescription('Specific user to reset (leave blank to reset everyone)').setRequired(false)
+        )
     ),
 
   async execute(interaction) {
+    if (interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'Only the server owner can use this.', flags: 64 });
+    }
+
     const sub = interaction.options.getSubcommand();
     const guildId = interaction.guildId;
 
@@ -40,10 +52,20 @@ module.exports = {
     } else if (sub === 'list') {
       const roles = getDailyRoles(guildId);
       if (roles.length === 0) {
-        return interaction.reply({ content: 'No role daily payouts configured. Default is **100 coins**.', ephemeral: true });
+        return interaction.reply({ content: 'No role daily payouts configured. Default is **100 coins**.', flags: 64 });
       }
       const lines = roles.map(r => `<@&${r.role_id}> → **${r.amount.toLocaleString()} coins**`).join('\n');
       await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('Daily Role Payouts').setDescription(lines)] });
+
+    } else if (sub === 'reset') {
+      const target = interaction.options.getUser('user');
+      if (target) {
+        resetDailyUser(target.id, guildId);
+        await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x57f287).setDescription(`✅ Reset daily cooldown for ${target}.`)] });
+      } else {
+        resetDailyAll(guildId);
+        await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x57f287).setDescription('✅ Reset daily cooldown for **everyone** in this server. They can all claim `/daily` immediately.')] });
+      }
     }
   }
 };

@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('balance')
     .setDescription('Check your coin balance')
+    .setDMPermission(false)
     .addUserOption(opt =>
       opt.setName('user').setDescription('User to check (admin only)').setRequired(false)
     ),
@@ -19,6 +20,6 @@ module.exports = {
       .setDescription(`**${balance.toLocaleString()} coins**`)
       .setThumbnail(target.displayAvatarURL());
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed] });
   }
 };

@@ -43,3 +43,4 @@ module.exports = {
     await interaction.reply({ embeds: [embed] });
   }
 };
+//todo wateer check

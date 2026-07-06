@@ -1,14 +1,17 @@
 require('dotenv').config();
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const db = require('./database');
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-  ]
+    GatewayIntentBits.GuildMessageReactions,
+  ],
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 client.commands = new Collection();
 
@@ -20,6 +23,9 @@ for (const folder of commandFolders) {
     const command = require(path.join(__dirname, 'commands', folder, file));
     if (command.data && command.execute) {
       client.commands.set(command.data.name, command);
+    }
+    if (command.contextMenu) {
+      client.commands.set(command.contextMenu.name, command);
     }
   }
 }
@@ -36,5 +42,15 @@ for (const file of eventFiles) {
 }
 
 process.on('unhandledRejection', err => console.error('Unhandled rejection:', err));
+
+function shutdown() {
+  console.log('\nShutting down...');
+  client.destroy();
+  db.close();
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 client.login(process.env.DISCORD_TOKEN);
