@@ -6,6 +6,7 @@ module.exports = {
     .setName('setdaily')
     .setDescription('Admin: configure daily payout per role')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDMPermission(false)
     .addSubcommand(sub =>
       sub.setName('set')
         .setDescription('Set daily payout for a role')

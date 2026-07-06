@@ -1,0 +1,118 @@
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+
+const SECTIONS = [
+  {
+    title: '💰 Economy',
+    color: 0xf1c40f,
+    commands: [
+      { name: '/balance', desc: 'Check your coin balance' },
+      { name: '/daily', desc: 'Claim your daily coins' },
+      { name: '/leaderboard', desc: 'See the richest players on the server' },
+      { name: '/give', desc: 'Give coins to another player' },
+      { name: '/daddyplease', desc: 'Beg the bot for coins (has a cooldown)' },
+      { name: '/repay', desc: 'Repay a loan' },
+      { name: '/botbalance', desc: 'Check the house balance' },
+      { name: '/setdaily', desc: '(Admin) Set the daily reward for a role' },
+    ],
+  },
+  {
+    title: '🎰 Gambling',
+    color: 0xe74c3c,
+    commands: [
+      { name: '/coinflip', desc: '50/50 coin flip — double or nothing. Supports `allin`.' },
+      { name: '/bet', desc: 'Custom multiplier bet (2–20x). Higher multiplier = lower odds. Supports `allin`.' },
+      { name: '/roulette', desc: 'Spin the wheel — red/black/number bets. Supports `allin`.' },
+      { name: '/slots', desc: 'Spin the slot machine. Pairs, triples, or jackpot. Supports `allin`.' },
+      { name: '/blackjack', desc: 'Play blackjack with hit/stand buttons. Blackjack pays 1.5x. Supports `allin`.' },
+      { name: '/jackpot', desc: 'See the current server jackpot pot (fed by 5% of every loss).' },
+    ],
+  },
+  {
+    title: '⚔️ Slay the Spire',
+    color: 0x8b0000,
+    commands: [
+      { name: '/stscharacter', desc: 'Randomly pick a STS2 character for your next run' },
+      { name: '/stsgamble', desc: 'Bet coins on a character surviving a random boss scenario' },
+      { name: '/draft', desc: 'Draft a 10-round STS deck — pick from 3 cards each round' },
+      { name: '/deckcheck', desc: 'Look up info on an STS card' },
+    ],
+  },
+  {
+    title: '🎮 Games',
+    color: 0x3498db,
+    commands: [
+      { name: '/overwatch herowheel', desc: 'Spin the wheel for a random Overwatch hero' },
+      { name: '/overwatch compcheck', desc: 'Check comp balance for a list of heroes' },
+      { name: '/overwatch challenge', desc: 'Get a random Overwatch challenge to try' },
+      { name: '/overwatch owstats', desc: 'Look up Overwatch player stats' },
+    ],
+  },
+  {
+    title: '🌍 RimWorld',
+    color: 0x8b4513,
+    commands: [
+      { name: '/rimworld event', desc: 'Generate a random RimWorld event' },
+      { name: '/rimworld colonytip', desc: 'Get a colony survival tip' },
+      { name: '/rimworld scenario', desc: 'Generate a random scenario challenge' },
+      { name: '/rimworld seed', desc: 'Get or share a RimWorld map seed' },
+    ],
+  },
+  {
+    title: '😄 Fun',
+    color: 0x2ecc71,
+    commands: [
+      { name: '/compliment', desc: 'Send someone a compliment' },
+      { name: '/insult', desc: 'Send someone a playful insult' },
+    ],
+  },
+];
+
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName('help')
+    .setDescription('Show all commands grouped by category')
+    .addStringOption(opt =>
+      opt.setName('category')
+        .setDescription('Show only one category')
+        .addChoices(
+          { name: 'Economy', value: 'economy' },
+          { name: 'Gambling', value: 'gambling' },
+          { name: 'Slay the Spire', value: 'sts' },
+          { name: 'Games', value: 'games' },
+          { name: 'RimWorld', value: 'rimworld' },
+          { name: 'Fun', value: 'fun' }
+        )
+    ),
+
+  async execute(interaction) {
+    const filter = interaction.options.getString('category');
+
+    const categoryMap = {
+      economy: 0,
+      gambling: 1,
+      sts: 2,
+      games: 3,
+      rimworld: 4,
+      fun: 5,
+    };
+
+    const sections = filter !== null ? [SECTIONS[categoryMap[filter]]] : SECTIONS;
+
+    const embeds = sections.map(section =>
+      new EmbedBuilder()
+        .setColor(section.color)
+        .setTitle(section.title)
+        .setDescription(
+          section.commands.map(c => `**${c.name}** — ${c.desc}`).join('\n')
+        )
+    );
+
+    // Gambling section gets a footer tip
+    if (!filter || filter === 'gambling') {
+      const gamblingEmbed = embeds[filter ? 0 : 1];
+      gamblingEmbed.setFooter({ text: 'All gambling commands have a 10s cooldown. Win streaks give up to +50% bonus.' });
+    }
+
+    await interaction.reply({ embeds, flags: 64 });
+  },
+};

@@ -4,7 +4,8 @@ const { getBalance } = require('../../utils/currency');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('botbalance')
-    .setDescription("Check the bot's coin balance (house funds)"),
+    .setDescription("Check the bot's coin balance (house funds)")
+    .setDMPermission(false),
 
   async execute(interaction) {
     const bot = interaction.client.user;

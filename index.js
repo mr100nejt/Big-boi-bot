@@ -2,6 +2,7 @@ require('dotenv').config();
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const db = require('./database');
 
 const client = new Client({
   intents: [
@@ -23,6 +24,9 @@ for (const folder of commandFolders) {
     if (command.data && command.execute) {
       client.commands.set(command.data.name, command);
     }
+    if (command.contextMenu) {
+      client.commands.set(command.contextMenu.name, command);
+    }
   }
 }
 
@@ -38,5 +42,15 @@ for (const file of eventFiles) {
 }
 
 process.on('unhandledRejection', err => console.error('Unhandled rejection:', err));
+
+function shutdown() {
+  console.log('\nShutting down...');
+  client.destroy();
+  db.close();
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 client.login(process.env.DISCORD_TOKEN);
