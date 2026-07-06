@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getBalance, addBalance, getLastDaily, setLastDaily, getDailyRoles } = require('../../utils/currency');
+const { consumeItem } = require('../../utils/shop');
 
 const COOLDOWN_MS = 20 * 60 * 60 * 1000; // 20 hours
 const DEFAULT_DAILY = 100;
@@ -38,14 +39,19 @@ module.exports = {
       if (matched.length > 0) payout = matched[0].amount;
     }
 
-    addBalance(userId, guildId, payout);
+    const boostMultiplier = consumeItem(userId, guildId, 'daily_boost') ?? 1;
+    const boostedPayout = Math.floor(payout * boostMultiplier);
+
+    addBalance(userId, guildId, boostedPayout);
     setLastDaily(userId, guildId, now);
     const newBalance = getBalance(userId, guildId);
 
     const embed = new EmbedBuilder()
       .setColor(0x57f287)
       .setTitle('Daily Claimed!')
-      .setDescription(`You received **${payout.toLocaleString()} coins**!\nNew balance: **${newBalance.toLocaleString()} coins**`);
+      .setDescription(`You received **${boostedPayout.toLocaleString()} coins**!\nNew balance: **${newBalance.toLocaleString()} coins**`);
+
+    if (boostMultiplier > 1) embed.addFields({ name: '⚡ Daily Boost!', value: `${boostMultiplier}x multiplier applied (+${(boostedPayout - payout).toLocaleString()} bonus coins)`, inline: false });
 
     await interaction.reply({ embeds: [embed], flags: 64 });
   }

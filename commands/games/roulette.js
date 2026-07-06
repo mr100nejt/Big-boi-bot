@@ -3,6 +3,7 @@ const { getBalance, addBalance, removeBalance, feedJackpot, claimJackpot, getJac
 const { checkCooldown, setCooldown } = require('../../utils/cooldown');
 const { recordWin, resetStreak, streakBonus } = require('../../utils/streak');
 const { safeDefer } = require('../../utils/interact');
+const { consumeActiveItem } = require('../../utils/shop');
 
 const NUMBERS = Array.from({ length: 37 }, (_, i) => i);
 const RED = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
@@ -90,17 +91,31 @@ module.exports = {
 
     setCooldown(userId, 'roulette', COOLDOWN);
 
-    const result = spin();
+    let result = spin();
+    let multiplier = resolveBet(betType, betNumber, result);
+    let won = multiplier > 0;
+    let charmUsed = false;
+
+    if (!won) {
+      const charmVal = consumeActiveItem(userId, guildId, 'lucky_charm');
+      if (charmVal !== null) {
+        charmUsed = true;
+        result = spin();
+        multiplier = resolveBet(betType, betNumber, result);
+        won = multiplier > 0;
+      }
+    }
+
     const isRed = RED.includes(result);
     const colorEmoji = result === 0 ? '🟢' : isRed ? '🔴' : '⚫';
-    const multiplier = resolveBet(betType, betNumber, result);
-    const won = multiplier > 0;
 
-    const streak = won ? recordWin(userId, guildId) : (resetStreak(userId, guildId), 0);
+    const streak = won ? recordWin(userId, guildId) : resetStreak(userId, guildId);
     const bonus = streakBonus(streak);
 
     let jackpotWon = 0;
     let winnings = 0;
+    let paydayBonus = 0;
+    let insuranceRefund = 0;
 
     if (won) {
       const base = bet * multiplier - bet;
@@ -108,6 +123,13 @@ module.exports = {
       winnings = base + bonusCoins;
       removeBalance(interaction.client.user.id, guildId, winnings);
       addBalance(userId, guildId, winnings);
+
+      const paydayMult = consumeActiveItem(userId, guildId, 'payday') ?? 1;
+      paydayBonus = Math.floor(winnings * (paydayMult - 1));
+      if (paydayBonus > 0) {
+        removeBalance(interaction.client.user.id, guildId, paydayBonus);
+        addBalance(userId, guildId, paydayBonus);
+      }
 
       if (Math.random() < 0.005) {
         jackpotWon = claimJackpot(guildId);
@@ -117,6 +139,13 @@ module.exports = {
       removeBalance(userId, guildId, bet);
       addBalance(interaction.client.user.id, guildId, bet);
       feedJackpot(guildId, Math.floor(bet * 0.10));
+
+      const insuranceMult = consumeActiveItem(userId, guildId, 'insurance_policy') ?? 0;
+      insuranceRefund = Math.floor(bet * insuranceMult);
+      if (insuranceRefund > 0) {
+        removeBalance(interaction.client.user.id, guildId, insuranceRefund);
+        addBalance(userId, guildId, insuranceRefund);
+      }
     }
 
     const newBalance = getBalance(userId, guildId);
@@ -132,6 +161,10 @@ module.exports = {
       );
 
     if (won && bonus > 0) embed.addFields({ name: `🔥 ${streak}-Win Streak`, value: `+${Math.round(bonus * 100)}% bonus`, inline: true });
+    if (!won && streak > 0) embed.addFields({ name: '🛡️ Streak Shield!', value: `Your ${streak}-win streak was protected!`, inline: true });
+    if (charmUsed) embed.addFields({ name: '🍀 Lucky Charm!', value: won ? 'Re-spin saved you!' : 'Re-spin activated — still lost.', inline: true });
+    if (paydayBonus > 0) embed.addFields({ name: '💰 Payday!', value: `+${paydayBonus.toLocaleString()} bonus coins!`, inline: true });
+    if (insuranceRefund > 0) embed.addFields({ name: '🏦 Insurance!', value: `+${insuranceRefund.toLocaleString()} refunded`, inline: true });
     if (jackpotWon > 0) embed.addFields({ name: '🏆 JACKPOT!', value: `+${jackpotWon.toLocaleString()} bonus coins!`, inline: false });
     embed.setFooter({ text: `Jackpot pot: ${jackpotNow.toLocaleString()} coins` });
 

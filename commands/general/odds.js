@@ -99,6 +99,10 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    if (interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'Only the server owner can use this.', flags: 64 });
+    }
+
     const game = interaction.options.getString('game');
     const odds = ODDS[game];
 

@@ -3,6 +3,7 @@ const { getBalance, addBalance, removeBalance, feedJackpot } = require('../../ut
 const { checkCooldown, setCooldown } = require('../../utils/cooldown');
 const { recordWin, resetStreak } = require('../../utils/streak');
 const { safeDefer } = require('../../utils/interact');
+const { consumeActiveItem } = require('../../utils/shop');
 
 const games = new Map();
 
@@ -173,16 +174,45 @@ async function finishGame(interaction, game, result) {
     removeBalance(userId, guildId, bet);
     addBalance(botId, guildId, bet);
     feedJackpot(guildId, Math.floor(bet * 0.10));
-    resetStreak(userId, guildId);
+    const preservedStreak = resetStreak(userId, guildId);
     resultLabel = result === 'bust' ? 'Bust! 💸' : 'You Lose! 💸';
+
+    const insuranceMult = consumeActiveItem(userId, guildId, 'insurance_policy') ?? 0;
+    const insuranceRefund = Math.floor(bet * insuranceMult);
+    if (insuranceRefund > 0) {
+      removeBalance(botId, guildId, insuranceRefund);
+      addBalance(userId, guildId, insuranceRefund);
+    }
+
+    const newBalance = getBalance(userId, guildId);
+    const embed = buildEmbed(game, true, resultLabel);
+    embed.addFields(
+      { name: 'Lost', value: `${bet.toLocaleString()} coins`, inline: true },
+      { name: 'Balance', value: `${newBalance.toLocaleString()} coins`, inline: true }
+    );
+    if (preservedStreak > 0) embed.addFields({ name: '🛡️ Streak Shield!', value: `Your ${preservedStreak}-win streak was protected!`, inline: true });
+    if (insuranceRefund > 0) embed.addFields({ name: '🏦 Insurance!', value: `+${insuranceRefund.toLocaleString()} refunded`, inline: true });
+    games.delete(`${userId}:${guildId}`);
+    return interaction.editReply({ embeds: [embed], components: [buildButtons(userId, true)] });
+  }
+
+  let paydayBonus = 0;
+  if (payout > 0) {
+    const paydayMult = consumeActiveItem(userId, guildId, 'payday') ?? 1;
+    paydayBonus = Math.floor(payout * (paydayMult - 1));
+    if (paydayBonus > 0) {
+      removeBalance(botId, guildId, paydayBonus);
+      addBalance(userId, guildId, paydayBonus);
+    }
   }
 
   const newBalance = getBalance(userId, guildId);
   const embed = buildEmbed(game, true, resultLabel);
   embed.addFields(
-    { name: payout > 0 ? 'Won' : result === 'push' ? 'Returned' : 'Lost', value: `${bet.toLocaleString()} coins`, inline: true },
+    { name: payout > 0 ? 'Won' : result === 'push' ? 'Returned' : 'Lost', value: `${(payout > 0 ? payout : bet).toLocaleString()} coins`, inline: true },
     { name: 'Balance', value: `${newBalance.toLocaleString()} coins`, inline: true }
   );
+  if (paydayBonus > 0) embed.addFields({ name: '💰 Payday!', value: `+${paydayBonus.toLocaleString()} bonus coins!`, inline: true });
 
   games.delete(`${userId}:${guildId}`);
   await interaction.editReply({ embeds: [embed], components: [buildButtons(userId, true)] });

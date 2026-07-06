@@ -21,7 +21,7 @@ function addBalance(userId, guildId, amount) {
 
 function removeBalance(userId, guildId, amount) {
   ensureUser(userId, guildId);
-  db.prepare('UPDATE users SET balance = balance - ? WHERE user_id = ? AND guild_id = ?')
+  db.prepare('UPDATE users SET balance = MAX(0, balance - ?) WHERE user_id = ? AND guild_id = ?')
     .run(amount, userId, guildId);
 }
 
@@ -35,6 +35,15 @@ function getLastDaily(userId, guildId) {
   ensureUser(userId, guildId);
   return db.prepare('SELECT last_daily FROM users WHERE user_id = ? AND guild_id = ?')
     .get(userId, guildId).last_daily;
+}
+
+function resetDailyAll(guildId) {
+  db.prepare('UPDATE users SET last_daily = 0 WHERE guild_id = ?').run(guildId);
+}
+
+function resetDailyUser(userId, guildId) {
+  ensureUser(userId, guildId);
+  db.prepare('UPDATE users SET last_daily = 0 WHERE user_id = ? AND guild_id = ?').run(userId, guildId);
 }
 
 function getDailyRoles(guildId) {
@@ -108,7 +117,7 @@ function claimJackpot(guildId) {
 
 module.exports = {
   getBalance, addBalance, removeBalance,
-  setLastDaily, getLastDaily,
+  setLastDaily, getLastDaily, resetDailyAll, resetDailyUser,
   getDailyRoles, setDailyRole, removeDailyRole,
   getLoan, issueLoan, repayLoan, setLoanCooldown,
   getJackpot, feedJackpot, claimJackpot,

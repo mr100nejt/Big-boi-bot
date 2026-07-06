@@ -1,8 +1,9 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { getBalance, addBalance, removeBalance } = require('../../utils/currency');
+const { getBalance, addBalance, removeBalance, feedJackpot } = require('../../utils/currency');
 const { checkCooldown, setCooldown } = require('../../utils/cooldown');
 const { recordWin, resetStreak } = require('../../utils/streak');
 const { safeDefer } = require('../../utils/interact');
+const { consumeActiveItem } = require('../../utils/shop');
 
 const games = new Map(); // `${userId}:${guildId}` → game state — one entry per user per guild
 
@@ -280,15 +281,33 @@ module.exports = {
       const botId   = interaction.client.user.id;
       const { bet } = game;
 
+      let paydayBonus = 0;
+      let insuranceRefund = 0;
+
       if (result.mult > 0) {
         const payout = bet * result.mult;
         removeBalance(botId, guildId, payout);
         addBalance(userId, guildId, payout);
         recordWin(userId, guildId);
+
+        const paydayMult = consumeActiveItem(userId, guildId, 'payday') ?? 1;
+        paydayBonus = Math.floor(payout * (paydayMult - 1));
+        if (paydayBonus > 0) {
+          removeBalance(botId, guildId, paydayBonus);
+          addBalance(userId, guildId, paydayBonus);
+        }
       } else {
         removeBalance(userId, guildId, bet);
-        addBalance(botId, guildId, bet);
+        addBalance(botId, guildId, Math.floor(bet * 0.90));
+        feedJackpot(guildId, Math.floor(bet * 0.10));
         resetStreak(userId, guildId);
+
+        const insuranceMult = consumeActiveItem(userId, guildId, 'insurance_policy') ?? 0;
+        insuranceRefund = Math.floor(bet * insuranceMult);
+        if (insuranceRefund > 0) {
+          removeBalance(botId, guildId, insuranceRefund);
+          addBalance(userId, guildId, insuranceRefund);
+        }
       }
 
       const newBalance = getBalance(userId, guildId);
@@ -297,6 +316,8 @@ module.exports = {
         { name: result.mult > 0 ? 'Won' : 'Lost', value: `${(result.mult > 0 ? bet * result.mult : bet).toLocaleString()} coins`, inline: true },
         { name: 'Balance', value: `${newBalance.toLocaleString()} coins`, inline: true }
       );
+      if (paydayBonus > 0) embed.addFields({ name: '💰 Payday!', value: `+${paydayBonus.toLocaleString()} bonus coins!`, inline: true });
+      if (insuranceRefund > 0) embed.addFields({ name: '🏦 Insurance!', value: `+${insuranceRefund.toLocaleString()} refunded`, inline: true });
 
       games.delete(`${userId}:${guildId}`);
       return interaction.editReply({

@@ -10,6 +10,10 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
+    if (interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'Only the server owner can use this.', flags: 64 });
+    }
+
     await safeDefer(interaction);
 
     const guildId = interaction.guildId;
