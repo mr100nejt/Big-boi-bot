@@ -8,11 +8,15 @@ const SECTIONS = [
       { name: '/balance', desc: 'Check your coin balance' },
       { name: '/daily', desc: 'Claim your daily coins' },
       { name: '/leaderboard', desc: 'See the richest players on the server' },
-      { name: '/give', desc: 'Give coins to another player' },
-      { name: '/daddyplease', desc: 'Beg the bot for coins (has a cooldown)' },
-      { name: '/repay', desc: 'Repay a loan' },
+      { name: '/daddyplease', desc: 'Beg the bot for a loan (coin flip to approve, 25% interest)' },
+      { name: '/repay', desc: 'Repay your outstanding loan' },
       { name: '/botbalance', desc: 'Check the house balance' },
-      { name: '/setdaily', desc: '(Admin) Set the daily reward for a role' },
+      { name: '/shop list', desc: 'Browse all items for sale in the server shop' },
+      { name: '/shop buy', desc: 'Buy a role or consumable buff from the shop. Optional: gift it to another user with `for:@user`' },
+      { name: '/shop inventory', desc: 'View your owned items and see which are armed and ready to fire' },
+      { name: '/shop use', desc: 'Arm a consumable so it activates automatically in your next game' },
+      { name: '/lottery buy', desc: 'Buy lottery tickets — coins go into the prize pool' },
+      { name: '/lottery status', desc: 'See the prize pool size and your ticket count' },
     ],
   },
   {
@@ -24,7 +28,9 @@ const SECTIONS = [
       { name: '/roulette', desc: 'Spin the wheel — red/black/number bets. Supports `allin`.' },
       { name: '/slots', desc: 'Spin the slot machine. Pairs, triples, or jackpot. Supports `allin`.' },
       { name: '/blackjack', desc: 'Play blackjack with hit/stand buttons. Blackjack pays 1.5x. Supports `allin`.' },
-      { name: '/jackpot', desc: 'See the current server jackpot pot (fed by 5% of every loss).' },
+      { name: '/craps', desc: 'Roll the dice — pass/don\'t pass bets. Supports `allin`.' },
+      { name: '/videopoker', desc: 'Video poker — hold cards, best hand wins. Supports `allin`.' },
+      { name: '/jackpot', desc: 'See the current server jackpot pot (fed by 10% of every loss).' },
     ],
   },
   {
@@ -58,6 +64,20 @@ const SECTIONS = [
     ],
   },
   {
+    title: '📢 Admin',
+    color: 0x95a5a6,
+    commands: [
+      { name: '/announce', desc: '(Admin) Post a formatted announcement embed to any channel' },
+      { name: '/give', desc: '(Admin) Add or remove coins from a user' },
+      { name: '/setdaily', desc: '(Admin) Set the daily reward amount for a role, or reset someone\'s cooldown' },
+      { name: '/givejackpot', desc: '(Admin) Claim the entire jackpot pool' },
+      { name: '/shopmanage', desc: '(Admin) Add/remove items from the server shop' },
+      { name: '/lotteryadmin draw', desc: '(Owner) Draw a lottery winner and pay out the pool' },
+      { name: '/lotteryadmin seed', desc: '(Owner) Add coins to the lottery prize pool' },
+      { name: '/lotteryadmin setup', desc: '(Owner) Set the lottery ticket price' },
+    ],
+  },
+  {
     title: '😄 Fun',
     color: 0x2ecc71,
     commands: [
@@ -80,7 +100,8 @@ module.exports = {
           { name: 'Slay the Spire', value: 'sts' },
           { name: 'Games', value: 'games' },
           { name: 'RimWorld', value: 'rimworld' },
-          { name: 'Fun', value: 'fun' }
+          { name: 'Fun', value: 'fun' },
+          { name: 'Admin', value: 'admin' }
         )
     ),
 
@@ -93,7 +114,8 @@ module.exports = {
       sts: 2,
       games: 3,
       rimworld: 4,
-      fun: 5,
+      admin: 5,
+      fun: 6,
     };
 
     const sections = filter !== null ? [SECTIONS[categoryMap[filter]]] : SECTIONS;
@@ -110,7 +132,7 @@ module.exports = {
     // Gambling section gets a footer tip
     if (!filter || filter === 'gambling') {
       const gamblingEmbed = embeds[filter ? 0 : 1];
-      gamblingEmbed.setFooter({ text: 'All gambling commands have a 10s cooldown. Win streaks give up to +50% bonus.' });
+      gamblingEmbed.setFooter({ text: 'All gambling commands have a 10s cooldown. Win streaks give up to +50% bonus. 10% of every loss feeds the jackpot.' });
     }
 
     await interaction.reply({ embeds, flags: 64 });

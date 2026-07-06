@@ -65,9 +65,16 @@ module.exports = {
         } catch { /* expired */ }
       }
 
+    } else if (interaction.isAutocomplete()) {
+      const command = interaction.client.commands.get(interaction.commandName);
+      if (!command?.autocomplete) return;
+      try {
+        await command.autocomplete(interaction);
+      } catch { /* silently drop */ }
+
     } else if (interaction.isModalSubmit()) {
       if (interaction.customId.startsWith('tip_')) {
-        const command = interaction.client.commands.get('Tip');
+        const command = interaction.client.commands.get('tip');
         if (!command?.handleModal) return;
         try {
           await command.handleModal(interaction);

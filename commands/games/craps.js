@@ -3,6 +3,7 @@ const { getBalance, addBalance, removeBalance, feedJackpot } = require('../../ut
 const { checkCooldown, setCooldown } = require('../../utils/cooldown');
 const { recordWin, resetStreak } = require('../../utils/streak');
 const { safeDefer } = require('../../utils/interact');
+const { consumeActiveItem } = require('../../utils/shop');
 
 const games = new Map(); // `${userId}:${guildId}` → game state
 
@@ -274,7 +275,7 @@ async function resolveGame(interaction, game, roll, passResult, dontResult) {
     } else if (passResult === 'lose') {
       removeBalance(userId, guildId, passBet);
       addBalance(botId, guildId, passBet);
-      feedJackpot(guildId, Math.floor(passBet * 0.05));
+      feedJackpot(guildId, Math.floor(passBet * 0.10));
       netDelta -= passBet;
       lines.push(`Pass Line: **-${passBet.toLocaleString()}** ❌`);
     } else {
@@ -292,7 +293,7 @@ async function resolveGame(interaction, game, roll, passResult, dontResult) {
     } else if (dontResult === 'lose') {
       removeBalance(userId, guildId, dontBet);
       addBalance(botId, guildId, dontBet);
-      feedJackpot(guildId, Math.floor(dontBet * 0.05));
+      feedJackpot(guildId, Math.floor(dontBet * 0.10));
       netDelta -= dontBet;
       lines.push(`Don't Pass: **-${dontBet.toLocaleString()}** ❌`);
     } else {
@@ -300,10 +301,25 @@ async function resolveGame(interaction, game, roll, passResult, dontResult) {
     }
   }
 
+  let paydayBonus = 0;
+  let insuranceRefund = 0;
+
   if (netDelta > 0) {
     recordWin(userId, guildId);
+    const paydayMult = consumeActiveItem(userId, guildId, 'payday') ?? 1;
+    paydayBonus = Math.floor(netDelta * (paydayMult - 1));
+    if (paydayBonus > 0) {
+      removeBalance(botId, guildId, paydayBonus);
+      addBalance(userId, guildId, paydayBonus);
+    }
   } else if (netDelta < 0) {
     resetStreak(userId, guildId);
+    const insuranceMult = consumeActiveItem(userId, guildId, 'insurance_policy') ?? 0;
+    insuranceRefund = Math.floor(Math.abs(netDelta) * insuranceMult);
+    if (insuranceRefund > 0) {
+      removeBalance(botId, guildId, insuranceRefund);
+      addBalance(userId, guildId, insuranceRefund);
+    }
   }
 
   const resultLabel = netDelta > 0 ? `You Win +${netDelta.toLocaleString()}! 🎉`
@@ -316,6 +332,8 @@ async function resolveGame(interaction, game, roll, passResult, dontResult) {
     { name: 'Result', value: lines.join('\n'), inline: false },
     { name: 'Balance', value: `${newBalance.toLocaleString()} coins`, inline: true }
   );
+  if (paydayBonus > 0) embed.addFields({ name: '💰 Payday!', value: `+${paydayBonus.toLocaleString()} bonus coins!`, inline: true });
+  if (insuranceRefund > 0) embed.addFields({ name: '🏦 Insurance!', value: `+${insuranceRefund.toLocaleString()} refunded`, inline: true });
 
   games.delete(`${userId}:${guildId}`);
 
